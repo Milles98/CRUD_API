@@ -13,12 +13,24 @@ namespace CRUD_API.Controllers
         [HttpGet("Get Order")]
         public async Task<IActionResult> GetOrder(int id)
         {
-            var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+            var order = await context.Orders
+                .Include(c => c.Customer)
+                .Include(p => p.Products)
+                .FirstOrDefaultAsync(o => o.Id == id);
 
-            if (order != null)
-                return Ok(order);
+            if (order == null)
+                return NotFound();
 
-            return NotFound();
+            var orderDto = new OrderResponseDto
+            {
+                Id = order.Id,
+                CreatedAt = order.CreatedAt,
+                CustomerName = order.Customer?.FullName,
+                ProductNames = order.Products!.Select(p => p.Name!).ToList(),
+                TotalAmount = order.TotalAmount
+            };
+
+            return Ok(orderDto);
         }
 
         [HttpGet("Get All Orders")]
@@ -52,6 +64,12 @@ namespace CRUD_API.Controllers
         //    var products = await context.Products.ToListAsync();
 
         //    return Ok(new { customers, products });
+        //}
+
+        //[HttpPut("Update Order")]
+        //public async Task<IActionResult> UpdateOrder()
+        //{
+
         //}
 
         [HttpPost("Create Order")]
@@ -88,6 +106,20 @@ namespace CRUD_API.Controllers
                 return CreatedAtAction(nameof(GetOrder), new { id = response.Id }, response);
             }
             return BadRequest("Invalid customer or product IDs not found");
+        }
+
+        [HttpDelete("Delete Order")]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == id);
+
+            if (order == null)
+                return BadRequest();
+            
+            context.Orders.Remove(order);
+            await context.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }
