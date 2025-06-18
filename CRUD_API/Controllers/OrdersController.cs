@@ -10,7 +10,7 @@ namespace CRUD_API.Controllers
     [ApiController]
     public class OrdersController(AppDbContext context) : ControllerBase
     {
-        [HttpGet]
+        [HttpGet("Get Order")]
         public async Task<IActionResult> GetOrder(int id)
         {
             var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == id);
@@ -21,24 +21,47 @@ namespace CRUD_API.Controllers
             return NotFound();
         }
 
-        [HttpGet("debug-data")]
-        public async Task<IActionResult> DebugData()
+        [HttpGet("Get All Orders")]
+        public async Task<IActionResult> GetAllOrders()
         {
-            var customers = await context.Customers.ToListAsync();
-            var products = await context.Products.ToListAsync();
+            var orders = await context.Orders
+                .Include(c => c.Customer)
+                .Include(p => p.Products)
+                .ToListAsync();
 
-            return Ok(new { customers, products });
+            var orderDtos = orders
+                .Select(order => new OrderResponseDto
+                {
+                    Id = order.Id,
+                    CreatedAt = order.CreatedAt,
+                    CustomerName = order.Customer?.FullName,
+                    ProductNames = order.Products!.Select(p => p.Name!).ToList(),
+                    TotalAmount = order.TotalAmount,
+                }).ToList();
+
+            if (orderDtos.Count > 0)
+            return Ok(orderDtos);
+
+            return Ok("Found no orders");
         }
 
+        //[HttpGet("debug-data")]
+        //public async Task<IActionResult> DebugData()
+        //{
+        //    var customers = await context.Customers.ToListAsync();
+        //    var products = await context.Products.ToListAsync();
 
-        [HttpPost]
+        //    return Ok(new { customers, products });
+        //}
+
+        [HttpPost("Create Order")]
         public async Task<IActionResult> CreateOrder(CreateOrderDTO orderDto)
         {
             var customer = await context.Customers.FirstOrDefaultAsync(o => o.Id == orderDto.CustomerId);
             var listOfProducts = await context.Products.Where(p => orderDto.ProductIds.Contains(p.Id)).ToListAsync();
             var orderTotal = listOfProducts.Sum(p => p.Price);
-            
-            if(customer != null && listOfProducts.Count == orderDto.ProductIds.Count)
+
+            if (customer != null && listOfProducts.Count == orderDto.ProductIds.Count)
             {
                 var order = new Order
                 {
@@ -59,10 +82,10 @@ namespace CRUD_API.Controllers
                     CreatedAt = order.CreatedAt,
                     TotalAmount = order.TotalAmount,
                     CustomerName = order.Customer.FullName,
-                    ProductNames = listOfProducts.Select(p => p.Name).ToList()
+                    ProductNames = listOfProducts.Select(p => p.Name!).ToList()
                 };
 
-                return CreatedAtAction(nameof(GetOrder), new { id = response.Id}, response);
+                return CreatedAtAction(nameof(GetOrder), new { id = response.Id }, response);
             }
             return BadRequest("Invalid customer or product IDs not found");
         }
