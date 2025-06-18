@@ -38,7 +38,7 @@ namespace CRUD_API.Controllers
             var listOfProducts = await context.Products.Where(p => orderDto.ProductIds.Contains(p.Id)).ToListAsync();
             var orderTotal = listOfProducts.Sum(p => p.Price);
             
-            if(customer != null && listOfProducts != null)
+            if(customer != null && listOfProducts.Count == orderDto.ProductIds.Count)
             {
                 var order = new Order
                 {
@@ -50,6 +50,9 @@ namespace CRUD_API.Controllers
                     Payments = null
                 };
 
+                await context.Orders.AddAsync(order);
+                await context.SaveChangesAsync();
+
                 var response = new OrderResponseDto
                 {
                     Id = order.Id,
@@ -59,12 +62,9 @@ namespace CRUD_API.Controllers
                     ProductNames = listOfProducts.Select(p => p.Name).ToList()
                 };
 
-                await context.Orders.AddAsync(order);
-                await context.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetOrder), new { id = order.Id}, order);
+                return CreatedAtAction(nameof(GetOrder), new { id = response.Id}, response);
             }
-            return BadRequest();
+            return BadRequest("Invalid customer or product IDs not found");
         }
     }
 }
