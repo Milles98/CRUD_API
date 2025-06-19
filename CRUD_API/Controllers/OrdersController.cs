@@ -10,7 +10,7 @@ namespace CRUD_API.Controllers
     [ApiController]
     public class OrdersController(AppDbContext context) : ControllerBase
     {
-        [HttpGet("Get Order")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetOrder(int id)
         {
             var order = await context.Orders
@@ -33,7 +33,7 @@ namespace CRUD_API.Controllers
             return Ok(orderDto);
         }
 
-        [HttpGet("Get All Orders")]
+        [HttpGet]
         public async Task<IActionResult> GetAllOrders()
         {
             var orders = await context.Orders
@@ -56,21 +56,6 @@ namespace CRUD_API.Controllers
 
             return Ok("Found no orders");
         }
-
-        //[HttpGet("debug-data")]
-        //public async Task<IActionResult> DebugData()
-        //{
-        //    var customers = await context.Customers.ToListAsync();
-        //    var products = await context.Products.ToListAsync();
-
-        //    return Ok(new { customers, products });
-        //}
-
-        //[HttpPut("Update Order")]
-        //public async Task<IActionResult> UpdateOrder()
-        //{
-
-        //}
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrder(int id, OrderUpdateDto orderUpdateDto)
@@ -106,7 +91,7 @@ namespace CRUD_API.Controllers
             return Ok(updatedDto);
         }
 
-        [HttpPost("Create Order")]
+        [HttpPost]
         public async Task<IActionResult> CreateOrder(CreateOrderDTO orderDto)
         {
             var customer = await context.Customers.FirstOrDefaultAsync(o => o.Id == orderDto.CustomerId);
@@ -142,7 +127,7 @@ namespace CRUD_API.Controllers
             return BadRequest("Invalid customer or product IDs not found");
         }
 
-        [HttpDelete("Delete Order")]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
             var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == id);
