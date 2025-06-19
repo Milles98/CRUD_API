@@ -52,7 +52,7 @@ namespace CRUD_API.Controllers
                 }).ToList();
 
             if (orderDtos.Count > 0)
-            return Ok(orderDtos);
+                return Ok(orderDtos);
 
             return Ok("Found no orders");
         }
@@ -71,6 +71,40 @@ namespace CRUD_API.Controllers
         //{
 
         //}
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateOrder(int id, OrderUpdateDto orderUpdateDto)
+        {
+            //Validera att kunden finns
+            var customer = await context.Customers.FindAsync(orderUpdateDto.CustomerId);
+            if (customer == null)
+                return BadRequest($"Could not find customer with id {id}");
+
+            var products = await context.Products.Where(p => orderUpdateDto.ProductIds.Contains(p.Id)).ToListAsync();
+            if (products.Count != orderUpdateDto.ProductIds.Count)
+                return BadRequest($"One or more product ids invalid");
+
+            var order = await context.Orders.Include(p => p.Products).FirstOrDefaultAsync(o => o.Id == id);
+            if (order == null)
+                return NotFound("Could not find order");
+
+            order.CustomerId = customer.Id;
+            order.Products = products;
+            order.TotalAmount = products.Sum(p => p.Price);
+
+            await context.SaveChangesAsync();
+
+            var updatedDto = new OrderResponseDto
+            {
+                Id = order.Id,
+                CreatedAt = order.CreatedAt,
+                CustomerName = order.Customer?.FullName,
+                ProductNames = products.Select(p => p.Name!).ToList(),
+                TotalAmount = order.TotalAmount
+            };
+
+            return Ok(updatedDto);
+        }
 
         [HttpPost("Create Order")]
         public async Task<IActionResult> CreateOrder(CreateOrderDTO orderDto)
@@ -115,7 +149,7 @@ namespace CRUD_API.Controllers
 
             if (order == null)
                 return BadRequest();
-            
+
             context.Orders.Remove(order);
             await context.SaveChangesAsync();
 
