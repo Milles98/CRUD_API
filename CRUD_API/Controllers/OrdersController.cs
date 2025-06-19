@@ -10,7 +10,7 @@ namespace CRUD_API.Controllers
     [ApiController]
     public class OrdersController(AppDbContext context) : ControllerBase
     {
-        [HttpGet("Get Order")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetOrder(int id)
         {
             var order = await context.Orders
@@ -33,7 +33,7 @@ namespace CRUD_API.Controllers
             return Ok(orderDto);
         }
 
-        [HttpGet("Get All Orders")]
+        [HttpGet]
         public async Task<IActionResult> GetAllOrders()
         {
             var orders = await context.Orders
@@ -52,27 +52,46 @@ namespace CRUD_API.Controllers
                 }).ToList();
 
             if (orderDtos.Count > 0)
-            return Ok(orderDtos);
+                return Ok(orderDtos);
 
             return Ok("Found no orders");
         }
 
-        //[HttpGet("debug-data")]
-        //public async Task<IActionResult> DebugData()
-        //{
-        //    var customers = await context.Customers.ToListAsync();
-        //    var products = await context.Products.ToListAsync();
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateOrder(int id, OrderUpdateDto orderUpdateDto)
+        {
+            //Validera att kunden finns
+            var customer = await context.Customers.FindAsync(orderUpdateDto.CustomerId);
+            if (customer == null)
+                return BadRequest($"Could not find customer with id {id}");
 
-        //    return Ok(new { customers, products });
-        //}
+            var products = await context.Products.Where(p => orderUpdateDto.ProductIds.Contains(p.Id)).ToListAsync();
+            if (products.Count != orderUpdateDto.ProductIds.Count)
+                return BadRequest($"One or more product ids invalid");
 
-        //[HttpPut("Update Order")]
-        //public async Task<IActionResult> UpdateOrder()
-        //{
+            var order = await context.Orders.Include(p => p.Products).FirstOrDefaultAsync(o => o.Id == id);
+            if (order == null)
+                return NotFound("Could not find order");
 
-        //}
+            order.CustomerId = customer.Id;
+            order.Products = products;
+            order.TotalAmount = products.Sum(p => p.Price);
 
-        [HttpPost("Create Order")]
+            await context.SaveChangesAsync();
+
+            var updatedDto = new OrderResponseDto
+            {
+                Id = order.Id,
+                CreatedAt = order.CreatedAt,
+                CustomerName = order.Customer?.FullName,
+                ProductNames = products.Select(p => p.Name!).ToList(),
+                TotalAmount = order.TotalAmount
+            };
+
+            return Ok(updatedDto);
+        }
+
+        [HttpPost]
         public async Task<IActionResult> CreateOrder(CreateOrderDTO orderDto)
         {
             var customer = await context.Customers.FirstOrDefaultAsync(o => o.Id == orderDto.CustomerId);
@@ -108,14 +127,14 @@ namespace CRUD_API.Controllers
             return BadRequest("Invalid customer or product IDs not found");
         }
 
-        [HttpDelete("Delete Order")]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(int id)
         {
             var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
                 return BadRequest();
-            
+
             context.Orders.Remove(order);
             await context.SaveChangesAsync();
 
