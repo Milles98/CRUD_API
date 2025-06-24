@@ -1,7 +1,9 @@
-﻿namespace CRUD_API.DTO
+﻿using CRUD_API.Enums;
+
+namespace CRUD_API.DTO
 {
     public class PaymentStatusPatchDto
     {
-        public string? Status { get; set; }
+        public PaymentStatus Status { get; set; }
     }
 }
