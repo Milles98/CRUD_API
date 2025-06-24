@@ -1,17 +1,14 @@
 ﻿using CRUD_API.Enums;
 
-namespace CRUD_API.Models
+namespace CRUD_API.DTO
 {
-    public class Payment
+    public class PaymentResponseDto
     {
         public int Id { get; set; }
         public DateTime AttemptedAt { get; set; }
         public decimal Amount { get; set; }
         public PaymentMethod Method { get; set; }
         public PaymentStatus Status { get; set; }
-
-        //FK
         public int OrderId { get; set; }
-        public Order? Order { get; set; }
     }
 }
