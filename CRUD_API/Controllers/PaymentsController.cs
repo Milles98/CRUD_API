@@ -91,5 +91,18 @@ namespace CRUD_API.Controllers
 
             return CreatedAtAction(nameof(GetPayment), new { id = response.Id}, response);
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeletePayment(int id)
+        {
+            var payment = await context.Payments.Where(c => c.Id == id).FirstOrDefaultAsync();
+
+            if (payment == null)
+                return BadRequest();
+
+            context.Payments.Remove(payment);
+            await context.SaveChangesAsync();
+            return Ok();
+        }
     }
 }
